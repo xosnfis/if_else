@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ru" class="scroll-smooth">
 <head>
@@ -8,14 +9,17 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
     *{font-family:'Inter',sans-serif;}
-    body{background:#F8FAFC;color:#334155;}
+    body{background:#FFFFFF;color:#334155;}
     .skill-tag{display:inline-flex;padding:.3rem .85rem;background:#EFF6FF;color:#2563EB;border-radius:999px;font-size:.8125rem;font-weight:500;border:1px solid #BFDBFE;}
     .section-card{background:#FFFFFF;border:1px solid #E2E8F0;border-radius:16px;padding:1.5rem;}
+    ::-webkit-scrollbar{width:4px;}
+    ::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:2px;}
   </style>
 </head>
-<body class="antialiased">
+<body class="antialiased flex flex-col min-h-screen">
 {% include "tramplin/_navbar.html" %}
 
+<main class="flex-1">
 <div class="max-w-2xl mx-auto px-4 py-10">
 
   {% if is_closed %}
@@ -235,6 +239,7 @@
   {% endif %}{# end is_closed #}
 
 </div>
+</main>
 
 <script>
   window.TRAMPLIN_CHAT_TARGET = {
@@ -246,5 +251,21 @@
     avatarUrl: "{{ profile_user.avatar_url|escapejs }}",
   };
 </script>
+
+<footer style="border-top:1px solid #E2E8F0;">
+  <div class="max-w-screen-xl mx-auto px-4 md:px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-2.5">
+      <img src="{% static 'tramplin/logo.svg' %}" alt="Трамплин" class="w-6 h-6 rounded-md object-cover">
+      <span class="text-sm font-medium tracking-widest uppercase" style="color:#1E293B;">Трамплин</span>
+      <span class="text-sm" style="color:#94A3B8;">© 2026</span>
+    </div>
+    <div class="flex flex-wrap items-center gap-5 text-sm" style="color:#94A3B8;">
+      <a href="/" class="hover:text-[#2563EB] transition-colors">Главная</a>
+      <a href="{% url 'tramplin:companies' %}" class="hover:text-[#2563EB] transition-colors">Компании</a>
+      <a href="#" class="hover:text-[#2563EB] transition-colors">О проекте</a>
+      <a href="#" class="hover:text-[#2563EB] transition-colors">Поддержка</a>
+    </div>
+  </div>
+</footer>
 </body>
 </html>

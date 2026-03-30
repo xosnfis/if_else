@@ -3,8 +3,9 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from .forms import RegistrationForm, LoginForm, EmployerProfileForm, SeekerProfileForm, OpportunityForm, CompanyProfileForm, CompanyReviewForm, AvatarUploadForm
-from .models import User, Opportunity, Application, Contact, Recommendation, CompanyProfile, CompanyReview, Message, MentorApplication
+from django.db.models import F
+from .forms import RegistrationForm, LoginForm, EmployerProfileForm, SeekerProfileForm, OpportunityForm, CompanyProfileForm, CompanyReviewForm, AvatarUploadForm, CuratorProfileForm
+from .models import User, Opportunity, Application, Contact, Recommendation, CompanyProfile, CompanyReview, Message, MentorApplication, CuratorProfile, ModerationLog
 from .recommendations import get_recommended_opportunities, get_matched_seekers
 import json
 
@@ -589,7 +590,7 @@ def register(request):
     if request.method == "POST":
         if form.is_valid():
             user = form.save()
-            login(request, user)
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             return redirect("tramplin:dashboard")
     return render(request, "tramplin/register.html", {"form": form})
 
@@ -623,6 +624,8 @@ def dashboard(request):
     """Role-based redirect to the correct dashboard."""
     if request.user.role == "employer":
         return redirect("tramplin:employer_dashboard")
+    if request.user.role == User.ROLE_CURATOR or request.user.is_superuser:
+        return redirect("tramplin:curator_dashboard")
     return redirect("tramplin:seeker_dashboard")
 
 
@@ -670,6 +673,10 @@ def employer_dashboard(request):
                 messages.success(request, "Страница компании обновлена.")
                 return redirect("tramplin:employer_dashboard")
         elif action == "create_opportunity":
+            # Только верифицированные работодатели могут создавать объявления
+            if not user.is_verified_employer:
+                messages.error(request, "Публикация объявлений доступна только верифицированным работодателям.")
+                return redirect("tramplin:employer_dashboard")
             opp_form = OpportunityForm(request.POST)
             if opp_form.is_valid():
                 opp = opp_form.save(commit=False)
@@ -729,6 +736,10 @@ def employer_dashboard(request):
 
 @login_required
 def edit_opportunity(request, pk):
+    # Только верифицированные работодатели могут редактировать объявления
+    if not request.user.is_verified_employer:
+        messages.error(request, "Доступ запрещён: редактирование объявлений доступно только верифицированным работодателям.")
+        return redirect("tramplin:employer_dashboard")
     opp = get_object_or_404(Opportunity, pk=pk, employer=request.user)
     form = OpportunityForm(request.POST or None, instance=opp)
     if request.method == "POST" and form.is_valid():
@@ -749,6 +760,10 @@ def edit_opportunity(request, pk):
 
 @login_required
 def update_application_status(request, pk):
+    # Только верифицированные работодатели могут управлять откликами
+    if not request.user.is_verified_employer:
+        messages.error(request, "Доступ запрещён: управление откликами доступно только верифицированным работодателям.")
+        return redirect("tramplin:employer_dashboard")
     app = get_object_or_404(Application, pk=pk, opportunity__employer=request.user)
     if request.method == "POST":
         new_status = request.POST.get("status")
@@ -1440,12 +1455,68 @@ def admin_toggle_block(request, user_id):
         messages.error(request, "Куратор не может блокировать других кураторов или суперпользователей.")
         return redirect("tramplin:admin_panel")
     if request.method == "POST":
-        target.is_blocked = not target.is_blocked
-        target.blocked_reason = request.POST.get("reason", "").strip()
-        target.save(update_fields=["is_blocked", "blocked_reason"])
-        action = "заблокирован" if target.is_blocked else "разблокирован"
-        messages.success(request, f"Пользователь {target.display_name or target.email} {action}.")
+        action = request.POST.get("block_action", "toggle")
+        if action == "unblock" or (action == "toggle" and target.is_blocked):
+            # Unblock
+            target.is_blocked = False
+            target.blocked_reason = ""
+            target.blocked_until = None
+            target.blocked_by_id_val = None
+            target.blocked_by_name = ""
+            target.save(update_fields=["is_blocked", "blocked_reason", "blocked_until", "blocked_by_id_val", "blocked_by_name"])
+            messages.success(request, f"Пользователь {target.display_name or target.email} разблокирован.")
+            if request.user.role == User.ROLE_CURATOR or request.user.is_superuser:
+                ModerationLog.objects.create(
+                    curator=request.user,
+                    action=ModerationLog.ACTION_UNBLOCK_USER,
+                    target_description=target.display_name or target.username,
+                )
+        else:
+            # Block
+            from django.utils import timezone
+            from datetime import timedelta
+            reason = request.POST.get("reason", "").strip()
+            duration_days = request.POST.get("duration_days", "").strip()
+            blocked_until = None
+            if duration_days:
+                try:
+                    days = int(duration_days)
+                    if days > 0:
+                        blocked_until = timezone.now() + timedelta(days=days)
+                except ValueError:
+                    pass
+            target.is_blocked = True
+            target.blocked_reason = reason
+            target.blocked_until = blocked_until
+            target.blocked_by_id_val = request.user.pk
+            target.blocked_by_name = request.user.display_name or request.user.username
+            target.save(update_fields=["is_blocked", "blocked_reason", "blocked_until", "blocked_by_id_val", "blocked_by_name"])
+            messages.success(request, f"Пользователь {target.display_name or target.email} заблокирован.")
+            if request.user.role == User.ROLE_CURATOR or request.user.is_superuser:
+                ModerationLog.objects.create(
+                    curator=request.user,
+                    action=ModerationLog.ACTION_BLOCK_USER,
+                    target_description=target.display_name or target.username,
+                )
     return redirect("tramplin:admin_panel")
+
+
+@login_required
+def admin_block_detail(request, user_id):
+    """AJAX: return block details for a user as JSON."""
+    if not _require_staff(request):
+        return JsonResponse({"error": "Доступ запрещён."}, status=403)
+    target = get_object_or_404(User, pk=user_id)
+    from django.utils import timezone
+    data = {
+        "is_blocked": target.is_blocked,
+        "reason": target.blocked_reason or "",
+        "blocked_by_name": target.blocked_by_name or "",
+        "blocked_until": target.blocked_until.strftime("%d.%m.%Y %H:%M") if target.blocked_until else None,
+        "is_permanent": target.blocked_until is None,
+        "expired": target.blocked_until is not None and target.blocked_until < timezone.now(),
+    }
+    return JsonResponse(data)
 
 
 @login_required
@@ -1476,9 +1547,22 @@ def admin_moderate_review(request, review_id):
             review.is_moderated = True
             review.save(update_fields=["is_moderated"])
             messages.success(request, "Отзыв одобрен и опубликован.")
+            if request.user.role == User.ROLE_CURATOR or request.user.is_superuser:
+                ModerationLog.objects.create(
+                    curator=request.user,
+                    action=ModerationLog.ACTION_MODERATE_REVIEW,
+                    target_description=f"Отзыв от {review.author.display_name or review.author.username} на {review.company.company_name or review.company.display_name}",
+                )
         elif action == "delete":
+            desc = f"Отзыв от {review.author.display_name or review.author.username} на {review.company.company_name or review.company.display_name}"
             review.delete()
             messages.success(request, "Отзыв удалён.")
+            if request.user.role == User.ROLE_CURATOR or request.user.is_superuser:
+                ModerationLog.objects.create(
+                    curator=request.user,
+                    action=ModerationLog.ACTION_MODERATE_REVIEW,
+                    target_description=desc,
+                )
     return redirect("tramplin:admin_panel")
 
 
@@ -1495,10 +1579,22 @@ def admin_moderate_opportunity(request, opp_id):
             opp.moderation_status = Opportunity.MODERATION_APPROVED
             opp.save(update_fields=["moderation_status"])
             messages.success(request, f"«{opp.title}» одобрено и опубликовано.")
+            if request.user.role == User.ROLE_CURATOR or request.user.is_superuser:
+                ModerationLog.objects.create(
+                    curator=request.user,
+                    action=ModerationLog.ACTION_APPROVE_OPP,
+                    target_description=f"{opp.title} ({opp.employer.company_name or opp.employer.display_name})",
+                )
         elif action == "reject":
             opp.moderation_status = Opportunity.MODERATION_REJECTED
             opp.save(update_fields=["moderation_status"])
             messages.success(request, f"«{opp.title}» отклонено.")
+            if request.user.role == User.ROLE_CURATOR or request.user.is_superuser:
+                ModerationLog.objects.create(
+                    curator=request.user,
+                    action=ModerationLog.ACTION_REJECT_OPP,
+                    target_description=f"{opp.title} ({opp.employer.company_name or opp.employer.display_name})",
+                )
     return redirect("tramplin:admin_panel")
 
 
@@ -1531,11 +1627,131 @@ def admin_moderate_mentor(request, application_id):
                 request,
                 f"Заявка «{name}» одобрена. Статус «Верифицированный ментор» присвоен.",
             )
+            if request.user.role == User.ROLE_CURATOR or request.user.is_superuser:
+                ModerationLog.objects.create(
+                    curator=request.user,
+                    action=ModerationLog.ACTION_APPROVE_MENTOR,
+                    target_description=name,
+                )
+                CuratorProfile.objects.filter(user=request.user).update(
+                    approved_mentors_count=F("approved_mentors_count") + 1
+                )
         elif action == "reject":
             application.status = MentorApplication.STATUS_REJECTED
             application.save(update_fields=["status"])
             # Revoke mentor flag in case it was previously granted
             User.objects.filter(pk=applicant.pk).update(is_mentor=False)
             messages.warning(request, f"Заявка «{name}» отклонена.")
+            if request.user.role == User.ROLE_CURATOR or request.user.is_superuser:
+                ModerationLog.objects.create(
+                    curator=request.user,
+                    action=ModerationLog.ACTION_REJECT_MENTOR,
+                    target_description=name,
+                )
 
     return redirect("tramplin:admin_panel")
+
+
+# ── Curator Dashboard (приватный) ─────────────────────────────────────────────
+
+@login_required
+def curator_dashboard(request):
+    """Личный кабинет куратора.
+
+    Доступен только пользователям с ролью 'curator' или суперпользователям.
+    Контекст:
+        pending_mentor_requests — количество заявок на менторство, ожидающих проверки.
+        unread_reports          — количество отзывов, ожидающих модерации (суррогат «тикетов»).
+        recent_activity         — последние 5 действий куратора из журнала модерации.
+        curator_profile         — профиль куратора (создаётся автоматически при первом входе).
+    """
+    user = request.user
+
+    # Только куратор или суперпользователь
+    if user.role != User.ROLE_CURATOR and not user.is_superuser:
+        messages.error(request, "Доступ запрещён: раздел доступен только кураторам.")
+        return redirect("tramplin:dashboard")
+
+    # Автоматически создаём профиль куратора, если его ещё нет
+    curator_profile, _ = CuratorProfile.objects.get_or_create(user=user)
+
+    profile_form = CuratorProfileForm(instance=curator_profile, user=user)
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "save_profile":
+            profile_form = CuratorProfileForm(request.POST, instance=curator_profile, user=user)
+            if profile_form.is_valid():
+                profile_form.save()
+                messages.success(request, "Профиль обновлён.")
+                return redirect("tramplin:curator_dashboard")
+        elif action == "upload_avatar":
+            avatar_form = AvatarUploadForm(request.POST, request.FILES, instance=user)
+            if avatar_form.is_valid():
+                avatar_form.save()
+                messages.success(request, "Фото профиля обновлено.")
+            else:
+                for err in avatar_form.errors.get("avatar", []):
+                    messages.error(request, err)
+            return redirect("tramplin:curator_dashboard")
+        elif action == "delete_avatar":
+            if user.avatar:
+                user.avatar.delete(save=False)
+                user.avatar = None
+                user.save(update_fields=["avatar"])
+            messages.success(request, "Фото профиля удалено.")
+            return redirect("tramplin:curator_dashboard")
+
+    # Количество заявок на менторство, ожидающих рассмотрения
+    pending_mentor_requests = MentorApplication.objects.filter(
+        status=MentorApplication.STATUS_PENDING
+    ).count()
+
+    # «Непрочитанные репорты» — отзывы, ещё не прошедшие модерацию
+    unread_reports = CompanyReview.objects.filter(is_moderated=False).count()
+
+    # Последние 5 действий этого куратора
+    recent_activity = ModerationLog.objects.filter(curator=user).select_related("curator")[:5]
+
+    context = {
+        "curator_profile": curator_profile,
+        "profile_form": profile_form,
+        "pending_mentor_requests": pending_mentor_requests,
+        "unread_reports": unread_reports,
+        "recent_activity": recent_activity,
+    }
+    return render(request, "tramplin/curator_dashboard.html", context)
+
+
+# ── Curator Public Profile (публичный) ────────────────────────────────────────
+
+@login_required
+def curator_public_profile(request, user_id):
+    """Публичная страница куратора.
+
+    Доступна любому авторизованному пользователю.
+    Отображает зону ответственности и график доступности куратора.
+    """
+    # Получаем пользователя с ролью куратора или суперпользователя, иначе 404
+    from django.db.models import Q
+    curator_user = get_object_or_404(
+        User,
+        Q(role=User.ROLE_CURATOR) | Q(is_superuser=True),
+        pk=user_id,
+    )
+
+    # Автоматически создаём профиль, если его ещё нет
+    curator_profile, _ = CuratorProfile.objects.get_or_create(user=curator_user)
+
+    # Одобренные менторы в зоне ответственности куратора (для публичного отображения)
+    approved_mentors = User.objects.filter(
+        is_mentor=True,
+        is_profile_public=True,
+    ).order_by("display_name")[:10]
+
+    context = {
+        "curator_user": curator_user,
+        "curator_profile": curator_profile,
+        "approved_mentors": approved_mentors,
+    }
+    return render(request, "tramplin/curator_public_profile.html", context)

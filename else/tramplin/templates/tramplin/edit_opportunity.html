@@ -9,12 +9,53 @@
   <style>
     *{font-family:'Inter',sans-serif;}
     body{background:#F8FAFC;}
-    .input-field{width:100%;padding:.625rem 1rem;border:1px solid #E2E8F0;border-radius:8px;font-size:.9rem;color:#1E293B;background:#FFFFFF;transition:border-color .2s,box-shadow .2s;outline:none;}
-    .input-field:focus{border-color:#2563EB;box-shadow:0 0 0 3px rgba(37,99,235,0.1);}
+
+    .input-field{
+      width:100%;
+      padding:.625rem 1rem;
+      border:1.5px solid #E2E8F0;
+      border-radius:10px;
+      font-size:.9rem;
+      color:#1E293B;
+      background:#FFFFFF;
+      transition:border-color .2s, box-shadow .2s, background .2s;
+      outline:none;
+      box-shadow:0 1px 3px rgba(0,0,0,0.04);
+    }
+    .input-field:hover{
+      border-color:#CBD5E1;
+      background:#FAFCFF;
+    }
+    .input-field:focus{
+      border-color:#6366F1;
+      box-shadow:0 0 0 3.5px rgba(99,102,241,0.15), 0 1px 4px rgba(99,102,241,0.1);
+      background:#FFFFFF;
+    }
     .input-field::placeholder{color:#94A3B8;}
     textarea.input-field{resize:vertical;}
+    select.input-field{cursor:pointer;}
     select.input-field option{background:#FFFFFF;color:#1E293B;}
-    .label{display:block;font-size:.75rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#475569;margin-bottom:.375rem;}
+
+    .label{
+      display:block;
+      font-size:.72rem;
+      font-weight:600;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      color:#64748B;
+      margin-bottom:.4rem;
+    }
+
+    /* Обводка карты в том же стиле */
+    #pickerMap{
+      border:1.5px solid #E2E8F0 !important;
+      border-radius:10px !important;
+      box-shadow:0 1px 3px rgba(0,0,0,0.04);
+      transition:border-color .2s, box-shadow .2s;
+    }
+    #pickerMap:hover{
+      border-color:#CBD5E1 !important;
+    }
   </style>
 </head>
 <body class="text-[#334155]">

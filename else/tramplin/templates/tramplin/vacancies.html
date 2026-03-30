@@ -37,30 +37,30 @@
 {% include "tramplin/_navbar.html" %}
 
 <!-- HERO -->
-<section class="pt-20 pb-24 px-6 relative overflow-hidden" style="background:linear-gradient(180deg,#EFF6FF 0%,transparent 100%);">
+<section class="pt-10 pb-10 md:pt-20 md:pb-24 px-4 md:px-6 relative overflow-hidden" style="background:linear-gradient(180deg,#EFF6FF 0%,transparent 100%);">
   <div class="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none" style="background:radial-gradient(circle,#F8FAFC 0%,transparent 70%);transform:translate(30%,-30%);"></div>
   <div class="max-w-screen-xl mx-auto relative">
-    <div class="grid lg:grid-cols-2 gap-12 items-center">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
       <div>
         <div class="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium mb-6" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#2563EB;">
           <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style="background:#2563EB;"></span><span class="relative inline-flex rounded-full h-2 w-2" style="background:#2563EB;"></span></span>
           {{ total }} вакансий доступно прямо сейчас
         </div>
-        <h1 class="text-4xl md:text-5xl font-light tracking-[0.06em] uppercase leading-tight mb-5" style="color:#1E293B;">
+        <h1 class="text-2xl md:text-4xl lg:text-5xl font-light tracking-[0.06em] uppercase leading-tight mb-4 md:mb-5" style="color:#1E293B;">
           Что такое<br/><span style="color:#2563EB;">вакансия на Трамплине?</span>
         </h1>
-        <p class="text-base leading-loose mb-8 max-w-lg" style="color:#475569;">
+        <p class="text-sm md:text-base leading-relaxed md:leading-loose mb-6 md:mb-8 max-w-lg line-clamp-3 md:line-clamp-none" style="color:#475569;">
           Вакансия — это постоянная позиция (Junior / Junior+) с официальной зарплатой, чёткими задачами и реальным карьерным ростом. Не стажировка — а твоя первая настоящая работа в IT.
         </p>
-        <div class="flex flex-wrap gap-3">
-          <a href="#vacancy-cards" class="inline-flex items-center gap-2 text-sm font-semibold px-6 py-3 rounded-lg transition-all hover:shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:scale-[1.02]" class="bg-[#2563EB] text-white">
+        <div class="flex flex-col sm:flex-row gap-3">
+          <a href="#vacancy-cards" class="flex items-center justify-center gap-2 text-sm font-semibold px-6 py-3 rounded-lg transition-all bg-[#2563EB] text-white hover:shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:scale-[1.02] w-full sm:w-auto">
             Смотреть вакансии
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
           </a>
-          <a href="{% url 'tramplin:companies' %}" class="inline-flex items-center gap-2 text-sm font-medium px-6 py-3 rounded-lg transition-all" style="border:1px solid #CBD5E1;color:#1E293B;">Компании-партнёры</a>
+          <a href="{% url 'tramplin:companies' %}" class="hidden sm:inline-flex items-center gap-2 text-sm font-medium px-6 py-3 rounded-lg transition-all" style="border:1px solid #CBD5E1;color:#1E293B;">Компании-партнёры</a>
         </div>
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 lg:mt-0 hidden md:grid">
         <div class="feature-card p-5 float sm:col-span-2">
           <div class="flex items-start gap-4">
             <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 drop-shadow-[0_2px_10px_rgba(37,99,235,0.3)]" style="background:#EFF6FF;border:1px solid #BFDBFE;">
@@ -89,7 +89,7 @@
         </div>
       </div>
     </div>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-14">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-10 md:mt-14">
       <div class="stat-card rounded-xl px-5 py-4 text-center"><div class="text-2xl font-semibold mb-0.5" style="color:#2563EB;">0–1 год</div><div class="text-xs" style="color:#475569;">требуемый опыт</div></div>
       <div class="stat-card rounded-xl px-5 py-4 text-center"><div class="text-2xl font-semibold mb-0.5" style="color:#2563EB;">100–200 тыс</div><div class="text-xs" style="color:#475569;">зарплата Junior</div></div>
       <div class="stat-card rounded-xl px-5 py-4 text-center"><div class="text-2xl font-semibold mb-0.5" style="color:#2563EB;">Бессрочно</div><div class="text-xs" style="color:#475569;">трудовой договор</div></div>
@@ -99,10 +99,10 @@
 </section>
 
 <!-- EMPLOYER TIPS -->
-<section class="py-14 px-6" style="border-top:1px solid #E2E8F0;">
+<section class="py-10 md:py-14 px-4 md:px-6" style="border-top:1px solid #E2E8F0;">
   <div class="max-w-screen-xl mx-auto">
-    <div class="rounded-xl p-8 lg:p-10" style="background:#F1F5F9;border:1px solid #DBEAFE;">
-      <div class="grid lg:grid-cols-2 gap-10 items-center">
+    <div class="rounded-xl p-6 md:p-10" style="background:#F1F5F9;border:1px solid #DBEAFE;">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-10 items-center">
         <div>
           <div class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold mb-4" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#2563EB;">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
@@ -111,7 +111,7 @@
           <h2 class="text-2xl font-light tracking-[0.1em] uppercase mb-3" style="color:#1E293B;">Как привлечь Gen Z?</h2>
           <p class="text-sm leading-loose" style="color:#475569;">Молодые разработчики выбирают компанию так же тщательно, как компания выбирает их. Вот что важно указать в вакансии.</p>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 lg:mt-0">
           {% for tip in "123" %}
           <div class="rounded-lg p-4" style="background:#F8FAFC;border:1px solid #E2E8F0;">
             <div class="w-8 h-8 rounded-md flex items-center justify-center mb-2 drop-shadow-[0_2px_10px_rgba(37,99,235,0.3)]" style="background:#EFF6FF;border:1px solid #BFDBFE;">
@@ -130,9 +130,9 @@
 </section>
 
 {% if featured_companies %}
-<section class="py-16 px-6" style="border-top:1px solid #E2E8F0;">
+<section class="py-10 md:py-16 px-4 md:px-6" style="border-top:1px solid #E2E8F0;">
   <div class="max-w-screen-xl mx-auto">
-    <div class="flex items-end justify-between mb-8 gap-4">
+    <div class="flex items-end justify-between mb-6 md:mb-8 gap-4">
       <div>
         <p class="text-xs font-semibold tracking-[0.2em] uppercase mb-2" style="color:#2563EB;">Топ работодатели</p>
         <h2 class="text-2xl font-light tracking-[0.1em] uppercase" style="color:#1E293B;">Компании, нанимающие Junior</h2>
@@ -143,9 +143,9 @@
       </a>
     </div>
     <div class="logo-scroll">
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 min-w-max sm:min-w-0">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {% for fc in featured_companies %}
-        <a href="{% url 'tramplin:company_profile' fc.employer__id %}" class="company-card p-5 flex items-start gap-4 group min-w-[220px] sm:min-w-0">
+        <a href="{% url 'tramplin:company_profile' fc.employer__id %}" class="company-card p-5 flex items-start gap-4 group">
           <div class="w-11 h-11 rounded-lg flex items-center justify-center font-bold text-lg flex-shrink-0 drop-shadow-[0_2px_10px_rgba(37,99,235,0.3)]" style="background:#DBEAFE;border:1px solid #BFDBFE;color:#2563EB;">{{ fc.employer__company_name|first|upper }}</div>
           <div class="flex-1 min-w-0">
             <div class="font-medium text-sm truncate transition-colors group-hover:text-[#2563EB]" style="color:#1E293B;">{{ fc.employer__company_name|default:"Компания" }}</div>
@@ -164,7 +164,7 @@
 {% endif %}
 
 <!-- VACANCY CARDS -->
-<section id="vacancy-cards" class="py-16 px-6">
+<section id="vacancy-cards" class="py-10 md:py-16 px-4 md:px-6">
   <div class="max-w-screen-xl mx-auto">
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
       <div>
@@ -217,18 +217,18 @@
         {% endif %}
         {% if opp.salary %}<div class="text-sm font-semibold mb-4" style="color:#2563EB;">{{ opp.salary }}</div>{% endif %}
         <div class="flex items-center justify-between pt-3 mt-auto gap-2" style="border-top:1px solid #E2E8F0;">
-          {% if opp.location %}<span class="text-xs flex items-center gap-1 truncate" style="color:#94A3B8;"><svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>{{ opp.location|truncatechars:18 }}</span>{% else %}<span></span>{% endif %}
-          <div class="flex items-center gap-2 flex-shrink-0">
+          {% if opp.location %}<span class="hidden md:flex text-xs items-center gap-1 truncate" style="color:#94A3B8;"><svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>{{ opp.location|truncatechars:18 }}</span>{% else %}<span></span>{% endif %}
+          <div class="flex items-center gap-2 flex-shrink-0 w-full md:w-auto">
             {% if not user.is_authenticated %}
-              <a href="{% url 'tramplin:login' %}" class="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-all" style="background:#EFF6FF;color:#2563EB;border:1px solid #BFDBFE;">Войдите, чтобы откликнуться</a>
+              <a href="{% url 'tramplin:login' %}" class="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 text-xs font-medium px-3 py-2 rounded-md transition-all" style="background:#EFF6FF;color:#2563EB;border:1px solid #BFDBFE;">Войти и откликнуться</a>
             {% elif user.role == 'seeker' %}
               {% if opp.pk in applied_ids %}
-                <span class="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md cursor-not-allowed" style="background:#E2E8F0;color:#475569;">
+                <span class="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 text-xs font-medium px-3 py-2 rounded-md cursor-not-allowed" style="background:#E2E8F0;color:#475569;">
                   <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>Вы уже откликнулись
                 </span>
               {% else %}
                 <button onclick="openApplyModal({{ opp.pk }}, '{{ opp.title|escapejs }}')"
-                        class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md transition-all hover:bg-[#1D4ED8] hover:shadow-[0_0_10px_rgba(37,99,235,0.3)]"
+                        class="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-md transition-all hover:bg-[#1D4ED8] hover:shadow-[0_0_10px_rgba(37,99,235,0.3)]"
                         style="background:#2563EB;color:#FFFFFF;">
                   Откликнуться
                 </button>
@@ -259,7 +259,7 @@
 </section>
 
 <footer style="border-top:1px solid #E2E8F0;">
-  <div class="max-w-screen-xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
+  <div class="max-w-screen-xl mx-auto px-4 md:px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
     <div class="flex items-center gap-2.5">
       <img src="{% static 'tramplin/logo.svg' %}" alt="Трамплин" class="w-6 h-6 rounded-md object-cover">
       <span class="text-sm font-medium tracking-widest uppercase" style="color:#1E293B;">Трамплин</span>

@@ -42,6 +42,7 @@ urlpatterns = [
     path("admin-panel/", views.admin_panel, name="admin_panel"),
     path("admin-panel/user/<int:user_id>/role/", views.admin_set_role, name="admin_set_role"),
     path("admin-panel/user/<int:user_id>/block/", views.admin_toggle_block, name="admin_toggle_block"),
+    path("admin-panel/user/<int:user_id>/block-detail/", views.admin_block_detail, name="admin_block_detail"),
     path("admin-panel/user/<int:user_id>/verify/", views.admin_verify_employer, name="admin_verify_employer"),
     path("admin-panel/review/<int:review_id>/moderate/", views.admin_moderate_review, name="admin_moderate_review"),
     path("admin-panel/opportunity/<int:opp_id>/moderate/", views.admin_moderate_opportunity, name="admin_moderate_opportunity"),
@@ -50,4 +51,7 @@ urlpatterns = [
     # Mentor programme
     path("mentor/apply/", views.apply_mentor, name="apply_mentor"),
     path("mentor/set-available/", views.mentor_set_available, name="mentor_set_available"),
+    # Curator
+    path("dashboard/curator/", views.curator_dashboard, name="curator_dashboard"),
+    path("curator/<int:user_id>/", views.curator_public_profile, name="curator_public_profile"),
 ]

@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.core.validators import FileExtensionValidator
-from .models import User, Opportunity, CompanyProfile, CompanyReview
+from .models import User, Opportunity, CompanyProfile, CompanyReview, CuratorProfile
 
 
 class RegistrationForm(UserCreationForm):
@@ -240,3 +240,41 @@ class AvatarUploadForm(forms.ModelForm):
             if avatar.size > max_size:
                 raise forms.ValidationError("Размер файла не должен превышать 2 МБ.")
         return avatar
+
+
+class CuratorProfileForm(forms.ModelForm):
+    """Форма редактирования профиля куратора/администратора."""
+    display_name = forms.CharField(
+        label="Отображаемое имя",
+        max_length=150,
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "Иван Иванов"}),
+    )
+
+    class Meta:
+        model = CuratorProfile
+        fields = ("responsibility_area", "availability_schedule")
+        widgets = {
+            "responsibility_area": forms.TextInput(attrs={"placeholder": 'Web-разработка, гр. 422ISV-2'}),
+            "availability_schedule": forms.TextInput(attrs={"placeholder": 'Будни, 10:00 - 18:00'}),
+        }
+        labels = {
+            "responsibility_area": "Зона ответственности",
+            "availability_schedule": "График доступности",
+        }
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._user = user
+        if user:
+            self.fields["display_name"].initial = user.display_name
+
+    def save(self, commit=True):
+        profile = super().save(commit=False)
+        if self._user and "display_name" in self.cleaned_data:
+            self._user.display_name = self.cleaned_data["display_name"]
+            if commit:
+                self._user.save(update_fields=["display_name"])
+        if commit:
+            profile.save()
+        return profile

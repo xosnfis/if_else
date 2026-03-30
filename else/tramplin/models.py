@@ -72,6 +72,9 @@ class User(AbstractUser):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_SEEKER)
     is_blocked = models.BooleanField("Заблокирован", default=False)
     blocked_reason = models.CharField("Причина блокировки", max_length=300, blank=True)
+    blocked_until = models.DateTimeField("Заблокирован до", null=True, blank=True)
+    blocked_by_id_val = models.IntegerField("ID заблокировавшего", null=True, blank=True)
+    blocked_by_name = models.CharField("Имя заблокировавшего", max_length=150, blank=True)
     display_name = models.CharField("Отображаемое имя", max_length=150, blank=True)
 
     # Employer verification fields
@@ -504,6 +507,93 @@ class Recommendation(models.Model):
 
     def __str__(self):
         return f"{self.sender} → {self.recipient}: {self.opportunity_title}"
+
+
+class CuratorProfile(models.Model):
+    """Расширенный профиль куратора — привязан к пользователю с ролью 'curator'."""
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="curator_profile",
+        verbose_name="Пользователь",
+    )
+    # Зона ответственности, например: "Web-разработка, гр. 422ISV-2"
+    responsibility_area = models.CharField(
+        "Зона ответственности",
+        max_length=300,
+        blank=True,
+        help_text='Например: "Web-разработка, гр. 422ISV-2"',
+    )
+    # График доступности, например: "Будни, 10:00 - 18:00"
+    availability_schedule = models.CharField(
+        "График доступности",
+        max_length=200,
+        blank=True,
+        help_text='Например: "Будни, 10:00 - 18:00"',
+    )
+    # Количество одобренных менторов — обновляется при модерации заявок
+    approved_mentors_count = models.IntegerField(
+        "Количество одобренных менторов",
+        default=0,
+    )
+
+    class Meta:
+        verbose_name = "Профиль куратора"
+        verbose_name_plural = "Профили кураторов"
+
+    def __str__(self):
+        return f"Куратор: {self.user.display_name or self.user.username}"
+
+
+class ModerationLog(models.Model):
+    """Журнал действий куратора при модерации контента."""
+
+    ACTION_APPROVE_MENTOR = "approve_mentor"
+    ACTION_REJECT_MENTOR = "reject_mentor"
+    ACTION_APPROVE_OPP = "approve_opportunity"
+    ACTION_REJECT_OPP = "reject_opportunity"
+    ACTION_BLOCK_USER = "block_user"
+    ACTION_UNBLOCK_USER = "unblock_user"
+    ACTION_MODERATE_REVIEW = "moderate_review"
+
+    ACTION_CHOICES = [
+        (ACTION_APPROVE_MENTOR, "Одобрил заявку на менторство"),
+        (ACTION_REJECT_MENTOR, "Отклонил заявку на менторство"),
+        (ACTION_APPROVE_OPP, "Одобрил объявление"),
+        (ACTION_REJECT_OPP, "Отклонил объявление"),
+        (ACTION_BLOCK_USER, "Заблокировал пользователя"),
+        (ACTION_UNBLOCK_USER, "Разблокировал пользователя"),
+        (ACTION_MODERATE_REVIEW, "Модерировал отзыв"),
+    ]
+
+    curator = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="moderation_logs",
+        verbose_name="Куратор",
+        limit_choices_to={"role": User.ROLE_CURATOR},
+    )
+    action = models.CharField(
+        "Действие",
+        max_length=50,
+        choices=ACTION_CHOICES,
+    )
+    # Текстовое описание объекта, над которым выполнено действие
+    target_description = models.CharField(
+        "Описание объекта",
+        max_length=300,
+        blank=True,
+    )
+    created_at = models.DateTimeField("Дата и время", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Запись журнала модерации"
+        verbose_name_plural = "Журнал модерации"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.curator} — {self.get_action_display()} [{self.created_at:%d.%m.%Y %H:%M}]"
 
 
 class MentorApplication(models.Model):
