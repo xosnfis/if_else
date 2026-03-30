@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Редактировать вакансию — Трамплин</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *{font-family:'Inter',sans-serif;}
+    body{background:#F8FAFC;}
+    .input-field{width:100%;padding:.625rem 1rem;border:1px solid #E2E8F0;border-radius:8px;font-size:.9rem;color:#1E293B;background:#FFFFFF;transition:border-color .2s,box-shadow .2s;outline:none;}
+    .input-field:focus{border-color:#2563EB;box-shadow:0 0 0 3px rgba(37,99,235,0.1);}
+    .input-field::placeholder{color:#94A3B8;}
+    textarea.input-field{resize:vertical;}
+    select.input-field option{background:#FFFFFF;color:#1E293B;}
+    .label{display:block;font-size:.75rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#475569;margin-bottom:.375rem;}
+  </style>
+</head>
+<body class="text-[#334155]">
+{% include "tramplin/_navbar.html" %}
+<div class="max-w-2xl mx-auto px-6 py-10">
+  <a href="{% url 'tramplin:employer_dashboard' %}?section=vacancies" class="inline-flex items-center gap-1 text-sm mb-6 transition-opacity hover:opacity-70 text-[#475569]">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    Назад к вакансиям
+  </a>
+  <div class="rounded-xl p-8 bg-white border border-[#E2E8F0] shadow-sm">
+    <h1 class="text-xl font-semibold mb-6 text-[#1E293B]">Редактировать: {{ opp.title }}</h1>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="latitude" id="opp_lat" value="{{ opp.latitude|default:'' }}"/>
+      <input type="hidden" name="longitude" id="opp_lng" value="{{ opp.longitude|default:'' }}"/>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for field in form %}
+        <div {% if field.name == 'description' or field.name == 'requirements' %}class="md:col-span-2"{% endif %}>
+          <label class="label">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}<p class="text-red-500 text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Map picker -->
+      <div class="mt-5 md:col-span-2">
+        <label class="label">Местоположение на карте <span class="font-normal text-[#94A3B8] normal-case">(кликните на карте или введите адрес и нажмите «Найти»)</span></label>
+        <div class="flex gap-2 mb-2">
+          <button type="button" onclick="geocodeOppAddress()" class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-[#F1F5F9] text-[#475569] border border-[#E2E8F0] hover:bg-[#E2E8F0]">Найти по адресу</button>
+          <button type="button" onclick="clearOppMarker()" class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-red-50 text-red-600 border border-red-200 hover:bg-red-100">Сбросить точку</button>
+          <span id="coordsDisplay" class="text-xs text-[#94A3B8] self-center">
+            {% if opp.latitude %}{{ opp.latitude|floatformat:5 }}, {{ opp.longitude|floatformat:5 }}{% endif %}
+          </span>
+        </div>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+        <div id="pickerMap" style="height:300px;border-radius:10px;border:1px solid #E2E8F0;overflow:hidden;"></div>
+      </div>
+
+      <div class="mt-6 flex gap-3">
+        <button type="submit" class="px-6 py-2.5 text-sm font-semibold rounded-lg transition-all bg-[#2563EB] text-white hover:bg-[#1D4ED8] shadow-sm">Сохранить</button>
+        <a href="{% url 'tramplin:employer_dashboard' %}?section=vacancies" class="px-6 py-2.5 text-sm font-medium rounded-lg transition-colors bg-[#F1F5F9] text-[#475569] border border-[#E2E8F0] hover:bg-[#E2E8F0]">Отмена</a>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  document.querySelectorAll('input[type=text],input[type=email],input[type=url],input[type=date],textarea,select').forEach(el => {
+    el.classList.add('input-field');
+  });
+
+  let pickerMap = null, pickerMarker = null;
+
+  function initPickerMap() {
+    const initLat = {{ opp.latitude|default:"55.75" }};
+    const initLng = {{ opp.longitude|default:"37.62" }};
+    const initZoom = {{ opp.latitude|yesno:"14,10" }};
+
+    pickerMap = L.map('pickerMap', { scrollWheelZoom: false }).setView([initLat, initLng], initZoom);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap © CARTO', maxZoom: 18
+    }).addTo(pickerMap);
+
+    {% if opp.latitude %}
+    pickerMarker = L.marker([{{ opp.latitude }}, {{ opp.longitude }}], { draggable: true }).addTo(pickerMap);
+    pickerMarker.on('dragend', function(e) {
+      const pos = e.target.getLatLng();
+      updateCoordFields(pos.lat, pos.lng);
+    });
+    {% endif %}
+
+    pickerMap.on('click', function(e) {
+      setPickerMarker(e.latlng.lat, e.latlng.lng);
+    });
+  }
+
+  function setPickerMarker(lat, lng) {
+    if (pickerMarker) pickerMap.removeLayer(pickerMarker);
+    pickerMarker = L.marker([lat, lng], { draggable: true }).addTo(pickerMap);
+    pickerMarker.on('dragend', function(e) {
+      const pos = e.target.getLatLng();
+      updateCoordFields(pos.lat, pos.lng);
+    });
+    updateCoordFields(lat, lng);
+    pickerMap.setView([lat, lng], 14);
+  }
+
+  function updateCoordFields(lat, lng) {
+    document.getElementById('opp_lat').value = lat.toFixed(6);
+    document.getElementById('opp_lng').value = lng.toFixed(6);
+    document.getElementById('coordsDisplay').textContent = lat.toFixed(5) + ', ' + lng.toFixed(5);
+  }
+
+  function clearOppMarker() {
+    if (pickerMarker && pickerMap) pickerMap.removeLayer(pickerMarker);
+    pickerMarker = null;
+    document.getElementById('opp_lat').value = '';
+    document.getElementById('opp_lng').value = '';
+    document.getElementById('coordsDisplay').textContent = '';
+  }
+
+  function geocodeOppAddress() {
+    const locField = document.querySelector('[name="location"]');
+    if (!locField || !locField.value.trim()) { alert('Введите адрес в поле «Город / Адрес»'); return; }
+    const btn = event.target;
+    btn.textContent = 'Поиск...'; btn.disabled = true;
+    fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(locField.value.trim()) + '&format=json&limit=1&accept-language=ru')
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.length) setPickerMarker(parseFloat(data[0].lat), parseFloat(data[0].lon));
+        else alert('Адрес не найден. Попробуйте упростить — только город и улицу.');
+      })
+      .catch(() => alert('Ошибка геокодинга.'))
+      .finally(() => { btn.textContent = 'Найти по адресу'; btn.disabled = false; });
+  }
+
+  window.addEventListener('load', initPickerMap);
+</script>
+</body>
+</html>
